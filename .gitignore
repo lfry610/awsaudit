@@ -1,0 +1,5 @@
+/awsaudit
+*.exe
+*.test
+*.out
+.env
