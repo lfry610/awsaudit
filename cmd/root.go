@@ -7,6 +7,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	keyProfile = "profile"
+	keyRegion  = "region"
+	keyOutput  = "output"
+)
+
 // cfgFile holds the --config flag value (path to an optional config file).
 // It's a package-level var because cobra's flag parsing and viper's config
 // loading happen in two separate callbacks (init() and initConfig()) that
@@ -43,11 +49,13 @@ func Execute() {
 }
 
 func init() {
-	// cobra.OnInitialize registers a callback that runs after flags are
-	// parsed but before any command's RunE executes. That ordering
-	// matters: initConfig (below) needs to read the --config flag's
-	// value, which only exists after parsing.
 	cobra.OnInitialize(initConfig)
+
+	pf := rootCmd.PersistentFlags()
+	pf.StringVar(&cfgFile, "config", "", "config file (default $HOME/awsaudit.yaml)")
+	pf.String(keyProfile, "", "AWS named profile to use")
+	pf.String(keyRegion, "", "AWS region to target")
+	pf.StringP(keyOutput, "o", "table", "output format: table|json")
 
 	// --- Global/persistent flags ---
 	// PersistentFlags() (vs. Flags()) means these are inherited by every
