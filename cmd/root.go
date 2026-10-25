@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -25,8 +27,8 @@ var rootCmd = &cobra.Command{
 	Use:   "awsaudit",
 	Short: "awsaudit scans an AWS account for hygiene problems",
 	Long: `awsaudit is a CLI that points at an AWS account and reports
-common hygiene issues: missing tags, overly open security groups,
-public/unencrypted storage, stale IAM keys, and idle billable resources.`,
+	common hygiene issues: missing tags, overly open security groups,
+	public/unencrypted storage, stale IAM keys, and idle billable resources.`,
 	// SilenceUsage/SilenceErrors: without these, cobra prints the full
 	// usage block on every error returned from a RunE, which is noisy
 	// for things like "no AWS credentials found". We want our own
@@ -110,4 +112,28 @@ func init() {
 //     or the config file value, or a default — in that priority order,
 //     without the subcommand needing to care which one fired.
 func initConfig() {
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+	} else {
+		if home, err := os.UserHomeDir(); err == nil {
+			viper.AddConfigPath(home)
+		}
+		viper.SetConfigName("awsaudit")
+		viper.SetConfigType("yaml")
+	}
+
+	viper.SetEnvPrefix("AWSAUDIT")
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		var notFound viper.ConfigFileNotFoundError
+		if !errors.As(err, &notFound) {
+			fmt.Fprintf(os.Stderr, "Error: reading config: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	viper.BindPFlag(keyProfile, rootCmd.PersistentFlags().Lookup(keyProfile))
+	viper.BindPFlag(keyRegion, rootCmd.PersistentFlags().Lookup(keyRegion))
+	viper.BindPFlag(keyOutput, rootCmd.PersistentFlags().Lookup(keyOutput))
 }
